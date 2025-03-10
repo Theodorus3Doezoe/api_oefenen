@@ -1,5 +1,6 @@
 import express, { response } from "express";
-import { query, validationResult, body } from "express-validator"
+import { query, validationResult, body, matchedData } from "express-validator"
+import req from "express/lib/request";
 // import { request } from "http";
 
 const app = express();
@@ -50,10 +51,14 @@ app.post('/api/users',
     .isLength({min: 5, max: 32}).withMessage("Username must be atleast 5 characters with a max of 32.")
     .isString().withMessage("Username must be a string!"),
     (request, response) => {
-        const result = validationResult(request)
+        const result = validationResult(request)//extract de gevalideerde data uit de middleware
         console.log(result)
-        const { body } = request//Hier wordt de request gedeconstruct en de body in het object request toegewezen aan de variabel body
-        const newUser = { id: mockUsers[mockUsers.length - 1].id + 1, ...body } //Voor de id van het newUser object wordt eerst de id van de laatste gebruiker opgehaald vervolgens wordt hier +1 aan toegevoegd voor de newUser ...body spreidt de rest van de waardes uit de body uit over het newUser object.
+        if (!result.isEmpty()) //controleert of de gevalideerde resultaten NIET leeg zijn. Als die dus gevuld is krijg je de error status
+            return response.status(400).send({ errors: result.array()})
+
+        const data = matchedData(request)//extract de gevalideerde data uit de request en stopt deze in een object
+        
+        const newUser = { id: mockUsers[mockUsers.length - 1].id + 1, ...data } //Voor de id van het newUser object wordt eerst de id van de laatste gebruiker opgehaald vervolgens wordt hier +1 aan toegevoegd voor de newUser ...body spreidt de rest van de waardes uit de body uit over het newUser object.
         mockUsers.push(newUser) //Hiermee voeg je de nieuw user toe aan de mockUsers array. Nu is er geen database dus doe ik het even zo.
         return response.status(201).send(newUser) //returned een responsecode van 201 voor succesvol response en de newUser in een bericht
 })
